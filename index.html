@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulta de Encontros - Geolocalização</title>
+    <!-- Tailwind CSS para estilização moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Cabeçalho -->
+    <header class="bg-slate-800 border-b border-slate-700 shadow-md py-4 px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-500/30">
+                <i data-lucide="shield-alert" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-white">Detector de Encontros</h1>
+                <p class="text-xs text-slate-400">Painel de Auditoria e Consulta de Geolocalização</p>
+            </div>
+        </div>
+
+        <!-- Botão de Carregar JSON -->
+        <div class="flex items-center gap-3">
+            <label for="fileInput" class="cursor-pointer bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2">
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                Carregar Arquivo JSON (respostas.json)
+            </label>
+            <input type="file" id="fileInput" accept=".json" class="hidden">
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 space-y-6">
+
+        <!-- Cards de Estatísticas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total de Encontros</span>
+                    <i data-lucide="activity" class="w-5 h-5 text-indigo-400"></i>
+                </div>
+                <p id="statTotal" class="text-3xl font-extrabold text-white mt-2">0</p>
+            </div>
+            <div class="bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-rose-400">Medida Protetiva</span>
+                    <i data-lucide="user-x" class="w-5 h-5 text-rose-400"></i>
+                </div>
+                <p id="statProtetiva" class="text-3xl font-extrabold text-white mt-2">0</p>
+            </div>
+            <div class="bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-amber-400">Facção</span>
+                    <i data-lucide="users" class="w-5 h-5 text-amber-400"></i>
+                </div>
+                <p id="statFaccao" class="text-3xl font-extrabold text-white mt-2">0</p>
+            </div>
+            <div class="bg-slate-800/80 border border-slate-700/60 p-5 rounded-2xl shadow-sm">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-emerald-400">Genéricos</span>
+                    <i data-lucide="map-pin" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <p id="statGenerico" class="text-3xl font-extrabold text-white mt-2">0</p>
+            </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="bg-slate-800 border border-slate-700 p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <button onclick="filtrarTipo('todos')" class="filtro-btn px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 text-white transition-all shadow-sm">Todos</button>
+                <button onclick="filtrarTipo('protetiva')" class="filtro-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all">Protetiva</button>
+                <button onclick="filtrarTipo('faccao')" class="filtro-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all">Facção</button>
+                <button onclick="filtrarTipo('generico')" class="filtro-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all">Genérico</button>
+            </div>
+            <div class="w-full md:w-72 relative">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+                <input type="text" id="searchInput" placeholder="Filtrar por ID ou Timestamp..." oninput="executarBusca()" class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+            </div>
+        </div>
+
+        <!-- Tabela de Resultados -->
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-800/90 border-b border-slate-700 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                            <th class="py-4 px-6">Tipo</th>
+                            <th class="py-4 px-6">IDs Envolvidos</th>
+                            <th class="py-4 px-6">Timestamp</th>
+                            <th class="py-4 px-6">Distância (m)</th>
+                            <th class="py-4 px-6">Coordenadas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaEncontros" class="divide-y divide-slate-700/50 text-sm">
+                        <tr>
+                            <td colspan="5" class="py-12 text-center text-slate-500">
+                                <div class="flex flex-col items-center justify-center gap-2">
+                                    <i data-lucide="folder-open" class="w-8 h-8 text-slate-600"></i>
+                                    <span>Nenhum arquivo carregado. Selecione um arquivo JSON no botão acima.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script de Manipulação e Renderização -->
+    <script>
+        let dadosGlobais = [];
+        let tipoAtual = 'todos';
+
+        // Inicializar ícones do Lucide
+        lucide.createIcons();
+
+        // Manipulador de upload do arquivo JSON
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const arquivo = event.target.files[0];
+            if (!arquivo) return;
+
+            const leitor = new FileReader();
+            leitor.onload = function(e) {
+                try {
+                    const resultado = JSON.parse(e.target.result);
+                    if (Array.isArray(resultado)) {
+                        dadosGlobais = resultado;
+                        atualizarEstatisticas(dadosGlobais);
+                        renderizarTabela(dadosGlobais);
+                    } else {
+                        alert('O formato do JSON não é um array válido.');
+                    }
+                } catch (erro) {
+                    alert('Erro ao ler o arquivo JSON. Certifique-se de que é um arquivo válido.');
+                    console.error(erro);
+                }
+            };
+            leitor.readAsText(arquivo);
+        });
+
+        function atualizarEstatisticas(dados) {
+            document.getElementById('statTotal').innerText = dados.length;
+            document.getElementById('statProtetiva').innerText = dados.filter(d => d.tipo === 'protetiva').length;
+            document.getElementById('statFaccao').innerText = dados.filter(d => d.tipo === 'faccao').length;
+            document.getElementById('statGenerico').innerText = dados.filter(d => d.tipo === 'generico').length;
+        }
+
+        function filtrarTipo(tipo) {
+            tipoAtual = tipo;
+            
+            // Atualizar classes dos botões de filtro
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                btn.className = "filtro-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-700 text-slate-300 hover:bg-slate-600 transition-all";
+            });
+            event.target.className = "filtro-btn px-4 py-2 rounded-xl text-sm font-medium bg-indigo-600 text-white transition-all shadow-sm";
+
+            executarBusca();
+        }
+
+        function executarBusca() {
+            const termo = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtrados = dadosGlobais.filter(item => {
+                const matchTipo = (tipoAtual === 'todos' || item.tipo === tipoAtual);
+                const idsStr = item.monitoradosEncontro.join(' ');
+                const matchTermo = termo === '' || 
+                    idsStr.includes(termo) || 
+                    item.timestamp.toLowerCase().includes(termo) ||
+                    item.tipo.toLowerCase().includes(termo);
+
+                return matchTipo && matchTermo;
+            });
+
+            renderizarTabela(filtrados);
+        }
+
+        function renderizarTabela(dados) {
+            const tbody = document.getElementById('tabelaEncontros');
+            tbody.innerHTML = '';
+
+            if (dados.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-12 text-center text-slate-500">
+                            Nenhum encontro encontrado para os filtros aplicados.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            dados.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-700/30 transition-colors";
+
+                // Badge de tipo
+                let badgeClass = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                if (item.tipo === 'protetiva') badgeClass = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+                if (item.tipo === 'faccao') badgeClass = "bg-amber-500/10 text-amber-400 border-amber-500/20";
+
+                // Formatação das posições
+                let posicoesHtml = '';
+                for (const [id, pos] of Object.entries(item.posicoes)) {
+                    posicoesHtml += `<span class="block text-xs text-slate-400">ID ${id}: Lat ${pos.lat}, Lon ${pos.lon}</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-4 px-6">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-semibold border ${badgeClass} uppercase">
+                            ${item.tipo}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 font-semibold text-white">
+                        [${item.monitoradosEncontro.join(', ')}]
+                    </td>
+                    <td class="py-4 px-6 text-slate-300 font-mono text-xs">
+                        ${item.timestamp}
+                    </td>
+                    <td class="py-4 px-6 text-slate-300">
+                        ${item.distanciaMetros.toFixed(2)}m
+                    </td>
+                    <td class="py-4 px-6">
+                        ${posicoesHtml}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

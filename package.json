@@ -1,0 +1,17 @@
+{
+  "name": "detecao-encontros",
+  "version": "1.0.0",
+  "description": "Desafio de detecção de encontros por geolocalização",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "typescript": "^5.3.3"
+  }
+}
